@@ -271,6 +271,7 @@ void create_and_add_channel_to_persistent_list(
   gpr_mu_lock(&global_persistent_list_mu);
   PHP_GRPC_PERSISTENT_LIST_UPDATE(&grpc_persistent_list, key, key_len,
                                   (void *)&new_rsrc);
+
   // Persistent map refer to it.
   php_grpc_channel_ref(channel->wrapper);
   gpr_mu_unlock(&global_persistent_list_mu);
@@ -408,12 +409,15 @@ PHP_METHOD(Channel, __construct) {
     // If the ChannelCredentials object was composed with a CallCredentials
     // object, there is no way we can tell them apart. Do NOT persist
     // them. They should be individually destroyed.
+    php_error_docref(NULL, E_NOTICE, "i cannot persist the channel, dummy");
     create_channel(channel, target, args, creds);
   } else if (!(PHP_GRPC_PERSISTENT_LIST_FIND(&grpc_persistent_list, key,
                                              key_len, rsrc))) {
+    php_error_docref(NULL, E_NOTICE, "Creating channel on target %s", target);
     create_and_add_channel_to_persistent_list(
         channel, target, args, creds, key, key_len, target_upper_bound TSRMLS_CC);
   } else {
+    php_error_docref(NULL, E_NOTICE, "Using stored persistent channel on target %s", target);
     // Found a previously stored channel in the persistent list
     channel_persistent_le_t *le = (channel_persistent_le_t *)rsrc->ptr;
     if (strcmp(target, le->channel->target) != 0 ||
